@@ -340,7 +340,7 @@
         const DEFAULT_PROMPTS = {
             furigana: 'Thêm furigana và romaji chuẩn Hepburn cho đoạn văn bản tiếng Nhật sau. Trả về định dạng JSON: [{"char": "kanji", "furigana": "hiragana", "romaji": "romaji"}]. Chỉ JSON, không giải thích.\n\n{{TEXT}}',
             segment: 'Tách từ đoạn tiếng Nhật sau. Trả về JSON: [{"word": "từ", "romaji": "romaji"}]. Chỉ JSON.\n\n{{TEXT}}',
-            explain: 'Dịch nghĩa, cách đọc furigana (kèm cách đọc được viết bằng tiếng Latinh), giải thích ngữ pháp, kính ngữ, từ vựng trong đoạn tiếng Nhật sau theo TỪNG CÂU. Dùng tiếng Việt chi tiết, Chỉ trả về nội dung yêu cầu, không thêm lời dẫn.\n\n{{TEXT}}',
+            explain: 'Đối với từng câu trong đoạn tiếng NHẬT sau, hãy đưa ra Dịch nghĩa, cách đọc furigana, cách đọc được viết bằng tiếng Latinh của cả câu, giải thích ngữ pháp, kính ngữ, từ vựng trong câu. Dùng tiếng Việt chi tiết, Chỉ trả về nội dung yêu cầu, không thêm lời dẫn.\n\n{{TEXT}}',
             translate: 'Dịch đoạn văn bản tiếng Nhật sau sang TIẾNG VIỆT chuẩn. \nChỉ trả về nội dung bản dịch, không thêm lời dẫn.\n\n{{TEXT}}'
         };
 
