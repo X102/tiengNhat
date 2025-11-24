@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tiếng Nhật cùng Dichi v1</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Inter', 'Noto Sans JP', sans-serif; background-color: #fff1f2; color: #333; min-height: 100vh; }
+        
+        /* Z-Index Strategy */
+        #settings-sidebar { transition: transform 0.3s ease-in-out; z-index: 3000; }
+        .sidebar-overlay { background-color: rgba(0, 0, 0, 0.5); z-index: 2999; }
+        #open-sidebar-btn { z-index: 2900; }
+
+        .container { background-color: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); padding: 1.5rem; width: 100%; max-width: 900px; margin: 20px auto; overflow: hidden; position: relative; z-index: 1; }
+        
+        /* Content Box */
+        .text-content { 
+            white-space: pre-wrap; word-wrap: break-word; line-height: 2.2; margin-top: 1rem; padding: 1rem; 
+            background-color: #fff5f5; border-radius: 8px; border: 1px solid #fda4af; 
+            min-height: 150px; max-height: 60vh; overflow-y: auto; font-size: 1.15rem; 
+        }
+        
+        .word-clickable, .segmented-word ruby { cursor: pointer; padding: 2px; border-radius: 4px; transition: background-color 0.2s ease; display: inline-flex; flex-direction: column-reverse; align-items: center; line-height: 1.2; }
+        .word-clickable:hover, .segmented-word:hover { background-color: #fecaca; }
+        .segmented-word { border: 1px solid #fda4af; margin: 2px; }
+        
+        /* Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.0); z-index: 3100; display: none; }
+        .modal-content { background-color: #fefefe; padding: 15px; border-radius: 8px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2); position: absolute; max-width: 280px; z-index: 3200; border: 1px solid #fda4af; animation: fadeIn 0.2s ease-out; cursor: grab; position: relative; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        
+        /* Buttons */
+        .button-base { padding: 8px 16px; border-radius: 8px; transition: background-color 0.2s ease, transform 0.1s ease; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); font-size: 0.875rem; font-weight: 500; cursor: pointer; }
+        .button-base:disabled { opacity: 0.5; cursor: not-allowed; }
+        .button-base:hover:not(:disabled) { transform: translateY(-1px); }
+        .button-base:active:not(:disabled) { transform: translateY(0); }
+        .button-primary { background-color: #ef4444; color: white; }
+        .button-primary:hover:not(:disabled) { background-color: #dc2626; }
+        .button-secondary { background-color: #6b7280; color: white; }
+        .button-secondary:hover:not(:disabled) { background-color: #4b5563; }
+        .button-danger { background-color: #dc2626; color: white; }
+        .button-danger:hover:not(:disabled) { background-color: #b91c1c; }
+        
+        /* Links */
+        a.link-button { display: block; background-color: #fee2e2; color: #b91c1c; padding: 8px 12px; border-radius: 6px; margin-bottom: 8px; text-align: center; text-decoration: none; transition: background-color 0.2s ease, color 0.2s ease; font-size: 0.9rem; }
+        a.link-button:hover { background-color: #fecaca; color: #991b1b; }
+        #reference-section a { color: #ef4444; text-decoration: underline; cursor: pointer; position: relative; z-index: 10; }
+        #reference-section a:hover { color: #dc2626; }
+        #reference-section ul { list-style-type: disc; padding-left: 25px; }
+        #reference-section li { margin-bottom: 0.5rem; }
+
+        .loading-spinner { border: 4px solid #fee2e2; border-top: 4px solid #ef4444; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 10px auto; display: none; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px; }
+        .section-header h3 { font-size: 1.25rem; font-weight: 600; color: #333; margin: 0; }
+        .content-section { background-color: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); padding: 20px; margin-top: 20px; border: 1px solid #fda4af; position: relative; }
+        
+        .text-selection-popup { max-width: 320px; padding: 10px; font-size: 0.85rem; box-shadow: 0 2px 8px rgba(0,0,0,0.15); border: 1px solid #ccc; background-color: #fff; cursor: grab; position: absolute; z-index: 3300; }
+        .text-selection-popup .button-secondary, .text-selection-popup .button-primary { padding: 6px 10px; font-size: 0.8rem; width: 100%; }
+        .close-button { position: absolute; top: 4px; right: 8px; font-size: 1.5rem; font-weight: bold; color: #9ca3af; cursor: pointer; line-height: 1; padding: 2px; }
+        .close-button:hover { color: #374151; }
+        
+        .tts-controls { border: 1px solid #fda4af; border-radius: 8px; padding: 1rem; background-color: #fff5f5; }
+        #tts-progress-container { width: 100%; background-color: #fee2e2; border-radius: 9999px; cursor: pointer; height: 10px; }
+        #tts-progress-bar { height: 100%; background-color: #ef4444; border-radius: 9999px; width: 0%; transition: width 0.1s linear; }
+        .resizable-media { resize: vertical; overflow: hidden; min-height: 150px; height: auto; background: #000; border-radius: 8px; display: flex; align-items: center; justify-content: center; position: relative; }
+        .resizable-media video { width: 100%; height: 100%; object-fit: contain; }
+        
+        .task-progress-wrapper { width: 100%; margin-top: 8px; display: none; }
+        .task-progress-bar-bg { width: 100%; background-color: #fee2e2; border-radius: 9999px; height: 6px; overflow: hidden; }
+        .task-progress-bar-fill { height: 100%; background-color: #ef4444; width: 0%; transition: width 0.3s ease; }
+        .task-status-text { font-size: 0.75rem; color: #6b7280; margin-top: 4px; display: flex; justify-content: space-between; }
+        .task-controls { display: flex; gap: 5px; align-items: center; }
+        
+        .menu-link { display: block; padding: 8px 12px; color: #4b5563; font-weight: 500; border-radius: 6px; transition: background 0.2s; cursor: pointer; text-decoration: none; }
+        .menu-link:hover { background-color: #fecaca; color: #ef4444; }
+        ruby { ruby-position: over; ruby-align: center; }
+    </style>
+</head>
+<body>
+    <div id="sidebar-overlay" class="sidebar-overlay fixed inset-0 hidden"></div>
+    
+    <div id="settings-sidebar" class="fixed top-0 left-0 h-full w-80 sm:w-96 bg-white shadow-2xl transform -translate-x-full overflow-y-auto flex flex-col">
+        <div class="p-6 flex-grow">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-red-600">Menu & Cài đặt</h2>
+                <button id="close-sidebar" class="text-gray-500 hover:text-gray-800"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+            </div>
+
+            <div class="mb-6 border-b pb-4">
+                <h3 class="font-semibold text-gray-700 mb-3 text-sm uppercase tracking-wider">Mục lục</h3>
+                <nav class="space-y-1">
+                    <a href="#input-section" class="menu-link">📥 Nhập liệu & Tải file</a>
+                    <a href="#media-player-section" class="menu-link">🎬 Trình phát Media</a>
+                    <a href="#tts-section-wrapper" class="menu-link">🔊 Đọc văn bản (TTS)</a>
+                    <a href="#main-text-section" class="menu-link">📄 Văn bản gốc</a>
+                    <a href="#furigana-text-section" class="menu-link">🇯🇵 Furigana + Romaji</a>
+                    <a href="#segmented-text-section" class="menu-link">✂️ Tách từ</a>
+                    <a href="#full-translation-section" class="menu-link">🇻🇳 Bản dịch</a>
+                    <a href="#explanation-section" class="menu-link">🎓 Giải thích ngữ pháp</a>
+                    <a href="#ai-tools-section" class="menu-link">🤖 Công cụ từ vựng AI</a>
+                </nav>
+            </div>
+
+            <div class="mb-6 border-b pb-4">
+                <h3 class="font-semibold text-gray-700 mb-3 text-sm uppercase tracking-wider">Cấu hình API</h3>
+                <div class="mb-3">
+                    <label class="block mb-1 text-sm font-medium text-gray-700">Nhà cung cấp:</label>
+                    <select id="ai-provider-select" class="w-full p-2 border border-gray-300 rounded-md shadow-sm text-sm">
+                        <option value="gemini">Google Gemini (Free)</option>
+                        <option value="deepseek">DeepSeek (Paid)</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="block mb-1 text-sm font-medium text-gray-700">API Key:</label>
+                    <input type="password" id="api-key-input" placeholder="Nhập API Key..." class="w-full p-2 border border-gray-300 rounded-md shadow-sm text-sm mb-2">
+                    <button id="save-api-key-button" class="button-base button-primary w-full">Lưu API Key</button>
+                </div>
+                <p id="api-key-guide" class="text-xs text-gray-500 mb-1"></p>
+                <p id="api-key-status" class="text-sm text-green-600 font-medium h-5"></p>
+                <div class="mt-2 grid grid-cols-2 gap-2">
+                    <div><label class="block mb-1 text-sm font-medium text-gray-700">Độ trễ (s):</label><input type="number" id="delay-input" value="5" min="0" step="0.5" class="w-full p-2 border border-gray-300 rounded-md shadow-sm text-sm"></div>
+                    <div><label class="block mb-1 text-sm font-medium text-gray-700">Chunk Size:</label><input type="number" id="chunk-size-input" value="100" min="10" max="1000" step="10" class="w-full p-2 border border-gray-300 rounded-md shadow-sm text-sm"></div>
+                </div>
+            </div>
+            
+            <div>
+                <div class="flex justify-between items-center mb-3"><h3 class="font-semibold text-gray-700 text-sm uppercase tracking-wider">Prompt Tùy chỉnh</h3><button id="reset-prompts-btn" class="text-xs text-red-500 underline">Reset</button></div>
+                <div class="space-y-3">
+                    <div><label class="text-xs font-medium text-gray-600">Furigana:</label><textarea id="prompt-furigana" rows="3" class="w-full p-2 border text-xs bg-gray-50 rounded"></textarea></div>
+                    <div><label class="text-xs font-medium text-gray-600">Tách từ:</label><textarea id="prompt-segment" rows="3" class="w-full p-2 border text-xs bg-gray-50 rounded"></textarea></div>
+                    <div><label class="text-xs font-medium text-gray-600">Giải thích:</label><textarea id="prompt-explain" rows="3" class="w-full p-2 border text-xs bg-gray-50 rounded"></textarea></div>
+                    <div><label class="text-xs font-medium text-gray-600">Dịch:</label><textarea id="prompt-translate" rows="3" class="w-full p-2 border text-xs bg-gray-50 rounded"></textarea></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button id="open-sidebar-btn" class="fixed top-4 left-4 z-50 bg-white p-2 rounded-full shadow-lg border border-gray-200 hover:bg-gray-100 text-gray-700" title="Mở cài đặt"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg></button>
+
+    <div class="container">
+        <div class="flex justify-between items-start mb-6 pl-12">
+            <h1 class="text-2xl sm:text-3xl font-bold text-red-600">Học tiếng Nhật cùng Dichi</h1>
+            <img src="kieuoanh.jpg" alt="<3" class="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-2 border-white shadow-lg flex-shrink-0" onerror="this.style.display='none'">
+        </div>
+
+        <div id="input-section" class="content-section !mt-0">
+            <div class="section-header">
+                <h3>📥 Nhập liệu & Tải file</h3>
+                <button class="toggle-button button-base button-secondary text-xs px-2 py-1" data-target="input-content-wrapper">Thu gọn</button>
+            </div>
+            <div id="input-content-wrapper">
+                <div class="space-y-4 mb-4">
+                    <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                        <div class="flex items-center space-x-2">
+                            <label for="file-upload" class="button-base button-secondary cursor-pointer">Tải lên tệp tin .docx</label>
+                            <input type="file" id="file-upload" class="hidden" accept=".txt,.docx,.DOCX">
+                            <span id="file-name" class="text-gray-600 text-sm"></span>
+                        </div>
+                    </div>
+                    <div class="mt-2 flex flex-col sm:flex-row items-center justify-center gap-2">
+                        <input type="url" id="url-input" class="w-full sm:w-auto flex-grow p-2 border border-gray-300 rounded-md shadow-sm text-sm" placeholder="Hoặc dán URL...">
+                        <button id="fetch-url-button" class="button-base button-primary w-full sm:w-auto">Tải URL</button>
+                    </div>
+                    <div class="mt-2">
+                        <label class="block mb-2 text-sm font-medium text-gray-700">Văn bản trực tiếp:</label>
+                        <textarea id="text-input-area" rows="5" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 text-sm" placeholder="Dán văn bản tiếng Nhật vào đây..."></textarea>
+                        <button id="process-text-button" class="button-base button-primary mt-2">Xử lý văn bản</button>
+                    </div>
+                    <div class="flex flex-wrap items-center justify-center gap-4 pt-4">
+                        <button id="furigana-button" class="button-base button-secondary">Thêm Furigana</button>
+                        <button id="segment-text-button" class="button-base button-secondary">Tách từ</button>
+                        <button id="explain-text-button" class="button-base button-secondary">Giải thích</button>
+                        <button id="translate-full-text-button" class="button-base button-secondary">Dịch văn bản</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="media-player-section" class="content-section">
+            <div class="section-header">
+                <h3>🎬 Trình phát Media</h3>
+                <div><label for="media-upload" class="button-base button-primary text-xs px-3 py-1 mr-2 cursor-pointer">Tải file</label><input type="file" id="media-upload" class="hidden" accept="audio/*,video/*"><button class="toggle-button button-base button-secondary text-xs px-2 py-1" data-target="media-container">Thu gọn</button></div>
+            </div>
+            <div id="media-container" class="hidden">
+                <div class="resizable-media mb-3" id="video-wrapper"><video id="main-media-player" controls style="display:none;"></video></div>
+                <audio id="main-audio-player" controls class="w-full" style="display:none;"></audio>
+                <p id="media-filename" class="text-sm text-center text-gray-500 mb-2 italic">Chưa có file.</p>
+                <div id="media-controls" class="flex flex-wrap justify-center items-center gap-3 p-2 bg-gray-50 rounded border border-gray-200 opacity-50 pointer-events-none">
+                    <button id="media-rewind" class="button-base button-secondary text-xs">-10s</button>
+                    <button id="media-forward" class="button-base button-secondary text-xs">+10s</button>
+                    <div class="flex items-center space-x-2 ml-2 border-l pl-3 border-gray-300"><label class="text-xs font-medium">Tốc độ:</label><select id="media-rate" class="p-1 border border-gray-300 rounded text-xs"><option value="0.5">0.5x</option><option value="1" selected>1.0x</option><option value="1.5">1.5x</option><option value="2">2.0x</option></select></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tts-section-wrapper" class="content-section">
+             <div class="section-header">
+                <h3>🔊 Công cụ đọc văn bản (TTS)</h3>
+                <button class="toggle-button button-base button-secondary text-xs px-2 py-1" data-target="tts-inner-content">Thu gọn</button>
+            </div>
+            <div id="tts-inner-content" class="tts-controls space-y-3">
+                <div class="flex items-center gap-4">
+                    <button id="tts-play-pause" class="button-base button-primary flex items-center justify-center w-28">
+                        <svg id="play-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" /></svg>
+                        <svg id="pause-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 00-1 1v2a1 1 0 102 0V9a1 1 0 00-1-1zm6 0a1 1 0 00-1 1v2a1 1 0 102 0V9a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+                        <span id="play-pause-text" class="ml-2">Phát</span>
+                    </button>
+                    <button id="tts-stop" class="button-base button-secondary">Dừng</button>
+                    <div id="tts-progress-container" class="flex-grow"><div id="tts-progress-bar"></div></div>
+                </div>
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <div class="flex items-center space-x-2"><label class="text-sm font-medium">Giọng:</label><select id="tts-voice" class="p-2 border border-gray-300 rounded-md shadow-sm text-sm"></select></div>
+                    <div class="flex items-center space-x-2"><label class="text-sm font-medium">Tốc độ:</label><input type="range" id="tts-rate" min="0.5" max="2" value="1" step="0.1" class="w-24"><span id="tts-rate-label" class="text-sm font-mono">1.0x</span></div>
+                    <div class="flex items-center space-x-2"><input type="checkbox" id="auto-play-toggle" class="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"><label class="text-sm font-medium">Auto phát</label></div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="main-text-section" class="content-section">
+            <div class="section-header"><h3>📄 Văn bản gốc</h3><div><button id="copy-main-text-button" class="copy-button button-base button-secondary text-xs px-2 py-1 mr-2" data-target="text-display">Sao chép</button><button class="toggle-button button-base button-secondary text-xs px-2 py-1" data-target="text-display">Thu gọn</button></div></div>
+            <div id="text-display" class="text-content">Vui lòng tải lên một tệp tin hoặc nhập văn bản để bắt đầu.</div>
+        </div>
+
+        <div id="furigana-text-section" class="content-section hidden">
+            <div class="section-header"><h3>🇯🇵 Văn bản với Furigana (AI)</h3><div class="task-controls"><button class="copy-button button-base button-secondary text-xs px-2 py-1" data-target="furigana-content">Sao chép</button><button class="toggle-button button-base button-secondary text-xs px-2 py-1" data-target="furigana-content">Thu gọn</button><button id="stop-furigana" class="button-base button-danger text-xs px-2 py-1 hidden">Dừng</button></div></div>
+            <div id="progress-furigana" class="task-progress-wrapper"><div class="task-progress-bar-bg"><div class="task-progress-bar-fill"></div></div><div class="task-status-text"><span>Đang xử lý...</span><span>0%</span></div></div>
+            <div id="furigana-content" class="text-gray-700 text-content section-content"></div>
+        </div>
+        <div id="segmented-text-section" class="content-section hidden">
+            <div class="section-header"><h3>✂️ Văn bản theo cụm từ (AI)</h3><div class="task-controls"><button class="copy-button button-base button-secondary text-xs px-2 py-1" data-target="segmented-content">Sao chép</button><button class="toggle-button button-base button-secondary text-xs px-2 py-1" data-target="segmented-content">Thu gọn</button><button id="stop-segment" class="button-base button-danger text-xs px-2 py-1 hidden">Dừng</button></div></div>
+            <div id="progress-segment" class="task-progress-wrapper"><div class="task-progress-bar-bg"><div class="task-progress-bar-fill"></div></div><div class="task-status-text"><span>Đang xử lý...</span><span>0%</span></div></div>
+            <div id="segmented-content" class="text-gray-700 text-content section-content" style="line-height: 2.5;"></div>
+        </div>
+        <div id="full-translation-section" class="content-section hidden">
+            <div class="section-header"><h3>🇻🇳 Bản dịch (AI)</h3><div class="task-controls"><button class="copy-button button-base button-secondary text-xs px-2 py-1" data-target="full-translation-content">Sao chép</button><button class="toggle-button button-base button-secondary text-xs px-2 py-1" data-target="full-translation-content">Thu gọn</button><button id="stop-translate" class="button-base button-danger text-xs px-2 py-1 hidden">Dừng</button></div></div>
+            <div id="progress-translate" class="task-progress-wrapper"><div class="task-progress-bar-bg"><div class="task-progress-bar-fill"></div></div><div class="task-status-text"><span>Đang xử lý...</span><span>0%</span></div></div>
+            <div id="full-translation-content" class="text-gray-700 text-content section-content"></div>
+        </div>
+        <div id="explanation-section" class="content-section hidden">
+            <div class="section-header"><h3>🎓 Giải thích nội dung (AI)</h3><div class="task-controls"><button class="copy-button button-base button-secondary text-xs px-2 py-1" data-target="explanation-content">Sao chép</button><button class="toggle-button button-base button-secondary text-xs px-2 py-1" data-target="explanation-content">Thu gọn</button><button id="stop-explain" class="button-base button-danger text-xs px-2 py-1 hidden">Dừng</button></div></div>
+            <div id="progress-explain" class="task-progress-wrapper"><div class="task-progress-bar-bg"><div class="task-progress-bar-fill"></div></div><div class="task-status-text"><span>Đang xử lý...</span><span>0%</span></div></div>
+            <div id="explanation-content" class="text-gray-700 text-content section-content"></div>
+        </div>
+        
+        <div id="ai-tools-section" class="mt-8 content-section">
+            <h3 class="text-xl font-semibold mb-3 text-red-600 text-center">🤖 Công cụ AI</h3>
+            <div class="flex items-center gap-2"><input type="text" id="ai-custom-input" placeholder="Nhập từ hoặc cụm từ..." class="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 text-sm w-full"></div>
+            <div class="flex items-center justify-center gap-2 mt-2">
+                <button id="ai-generate-sentence-button" class="button-base button-primary">Tạo câu ví dụ</button>
+                <button id="ai-generate-related-words-button" class="button-base button-primary">Tạo từ liên quan</button>
+            </div>
+            <div id="loading-spinner" class="loading-spinner"></div>
+            <div id="ai-sentence-results-section" class="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-md text-gray-700 hidden"><div class="section-header"><h3>Câu ví dụ</h3><div><button class="copy-button button-base button-secondary text-xs px-2 py-1 mr-2" data-target="ai-sentence-content">Sao chép</button><button class="toggle-button button-base button-secondary text-xs px-2 py-1" data-target="ai-sentence-content">Thu gọn</button></div></div><div id="ai-sentence-content" class="mt-2"></div></div>
+            <div id="ai-related-words-results-section" class="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-md text-gray-700 hidden"><div class="section-header"><h3>Từ liên quan</h3><div><button class="copy-button button-base button-secondary text-xs px-2 py-1 mr-2" data-target="ai-related-words-content">Sao chép</button><button class="toggle-button button-base button-secondary text-xs px-2 py-1" data-target="ai-related-words-content">Thu gọn</button></div></div><div id="ai-related-words-content" class="mt-2"></div></div>
+        </div>
+        
+        <div id="text-stats-section" class="content-section hidden">
+            <div class="section-header"><h3>📊 Thống kê văn bản</h3><button class="toggle-button button-base button-secondary text-xs px-2 py-1" data-target="text-stats-content">Thu gọn</button></div>
+            <div id="text-stats-content" class="text-gray-700">
+                <p>Số ký tự: <span id="char-count">0</span></p>
+                <p>Số từ: <span id="word-count">0</span></p>
+            </div>
+        </div>
+        
+        <div id="reference-section" class="content-section mt-8">
+            <h3 class="text-xl font-semibold mb-3 text-red-600 text-center">Tra cứu tham khảo</h3>
+            <ul>
+                <li><a href="https://jisho.org" target="_blank">Jisho.org - Từ điển Nhật-Anh</a></li>
+                <li><a href="https://tangorin.com" target="_blank">Tangorin - Từ điển với ví dụ</a></li>
+                <li><a href="https://www.weblio.jp" target="_blank">Weblio - Từ điển Nhật-Nhật</a></li>
+                <li><a href="https://takoboto.jp" target="_blank">Takoboto - Từ điển Nhật-Việt</a></li>
+                <li><a href="https://vtudien.com" target="_blank">Vtudien - Từ điển Nhật-Việt</a></li>
+                <li><a href="https://youglish.com" target="_blank">Youglish - Phát âm từ/cụm từ</a></li>
+                <li><a href="https://youglish.com" target="_blank">Youglish - Phát âm từ/cụm từ</a></li>
+                <li><a href="https://www.facebook.com/kieuoanhdichi?locale=vi_VN" target="_blank">Kiều Oanh - DHS Ths tại Trung Quốc, cô giáo của tác giả, người đặt yêu cầu tạo trang web này :))</a></li>
+                <li><a href="https://www.facebook.com/lopmaybay?locale=vi_VN" target="_blank">Phạm Đăng Hiển - DHS TS tại Nga, tác giả trang web này :))</a></li>
+                <li>Cập nhật lần 1: 24.11.2025</li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Lookup Modal -->
+    <!-- <div id="lookup-modal-overlay" class="modal-overlay" style="display: none;">
+        <div id="modal-content-inner" class="modal-content">
+            <span class="close-button" id="close-lookup-modal-btn">×</span>
+            <div class="text-center mb-4">
+                <h3 class="text-lg font-bold" id="selected-word-modal">Từ</h3>
+                <div id="google-translate-result" class="text-sm text-gray-600 mt-2"></div>
+            </div>
+            <a id="jisho-link" class="link-button">Jisho.org</a>
+            <a id="tangorin-link" class="link-button">Tangorin</a>
+            <a id="weblio-link" class="link-button">Weblio</a>
+            <a id="takoboto-link" class="link-button">Takoboto</a>
+            <div class="flex gap-2 mt-4">
+                <button id="copy-word-button" class="button-base button-secondary w-full text-xs">Sao chép từ</button>
+                <button id="pronounce-word-button" class="button-base button-primary w-full text-xs">Nghe phát âm</button>
+            </div>
+        </div>
+    </div> -->
+    
+    <!-- Lookup Modal -->
+<div id="lookup-modal-overlay" class="modal-overlay" style="display: none;">
+    <div id="modal-content-inner" class="modal-content">
+        <span class="close-button" id="close-lookup-modal-btn">×</span>
+        <div class="text-center mb-4">
+            <h3 class="text-lg font-bold" id="selected-word-modal">Từ</h3>
+            <div id="google-translate-result" class="text-sm text-gray-600 mt-2"></div>
+        </div>
+        <a id="jisho-link" class="link-button" target="_blank" rel="noopener noreferrer">Jisho.org</a>
+        <a id="tangorin-link" class="link-button" target="_blank" rel="noopener noreferrer">Tangorin</a>
+        <a id="weblio-link" class="link-button" target="_blank" rel="noopener noreferrer">Weblio</a>
+        <a id="takoboto-link" class="link-button" target="_blank" rel="noopener noreferrer">Takoboto</a>
+        <a id="vtudien-link" class="link-button" target="_blank" rel="noopener noreferrer">Vtudien (Nhật-Việt)</a>
+        <a id="youglish-link" class="link-button" target="_blank" rel="noopener noreferrer">Youglish (phát âm)</a>
+        <div class="flex gap-2 mt-4">
+            <button id="copy-word-button" class="button-base button-secondary w-full text-xs">Sao chép từ</button>
+            <button id="pronounce-word-button" class="button-base button-primary w-full text-xs">Nghe phát âm</button>
+        </div>
+    </div>
+</div>
+    <!-- Text Selection Popup -->
+    <div id="text-selection-popup" class="text-selection-popup hidden">
+        <span class="close-button" id="close-selection-popup-btn">×</span>
+        <button id="copy-selection-button" class="button-base button-secondary mb-2">Sao chép văn bản</button>
+        <button id="translate-selection-button" class="button-base button-primary mb-2">Dịch</button>
+        <button id="pronounce-selection-button" class="button-base button-primary">Nghe</button>
+        <a id="hanzii-selection-link" class="link-button">Tra trên Jisho</a>
+        <div id="selection-translate-spinner" class="loading-spinner" style="display: none;"></div>
+        <div id="selection-translate-result" class="text-sm text-gray-700 hidden"></div>
+    </div>
+
+    <script>
+        const DEFAULT_PROMPTS = {
+            furigana: 'Thêm furigana và romaji chuẩn Hepburn cho đoạn văn bản tiếng Nhật sau. Trả về định dạng JSON: [{"char": "kanji", "furigana": "hiragana", "romaji": "romaji"}]. Chỉ JSON, không giải thích.\n\n{{TEXT}}',
+            segment: 'Tách từ đoạn tiếng Nhật sau. Trả về JSON: [{"word": "từ", "romaji": "romaji"}]. Chỉ JSON.\n\n{{TEXT}}',
+            explain: 'Giải thích ngữ pháp, kính ngữ, từ vựng trong đoạn tiếng Nhật sau. Dùng tiếng Việt chi tiết.\n\n{{TEXT}}',
+            translate: 'Dịch đoạn tiếng Nhật sang tiếng Việt tự nhiên.\n\n{{TEXT}}'
+        };
+
+        let currentRawText = '';
+        let activeMediaPlayer = null;
+        const prompts = {
+            furigana: document.getElementById('prompt-furigana'),
+            segment: document.getElementById('prompt-segment'),
+            explain: document.getElementById('prompt-explain'),
+            translate: document.getElementById('prompt-translate')
+        };
+
+        const fileUploadInput = document.getElementById('file-upload');
+        const fileNameSpan = document.getElementById('file-name');
+        const urlInput = document.getElementById('url-input');
+        const fetchUrlButton = document.getElementById('fetch-url-button');
+        const textInputArea = document.getElementById('text-input-area');
+        const processTextButton = document.getElementById('process-text-button');
+        const textDisplay = document.getElementById('text-display');
+        const aiProviderSelect = document.getElementById('ai-provider-select');
+        const apiKeyInput = document.getElementById('api-key-input');
+        const saveApiKeyButton = document.getElementById('save-api-key-button');
+        const apiKeyGuide = document.getElementById('api-key-guide');
+        const apiKeyStatus = document.getElementById('api-key-status');
+        const delayInput = document.getElementById('delay-input');
+        const chunkSizeInput = document.getElementById('chunk-size-input');
+        const resetPromptsBtn = document.getElementById('reset-prompts-btn');
+
+        const mediaUploadInput = document.getElementById('media-upload');
+        const mediaRewindBtn = document.getElementById('media-rewind');
+        const mediaForwardBtn = document.getElementById('media-forward');
+        const mediaRateSelect = document.getElementById('media-rate');
+
+        const ttsPlayPause = document.getElementById('tts-play-pause');
+        const ttsStop = document.getElementById('tts-stop');
+        const ttsVoice = document.getElementById('tts-voice');
+        const ttsRate = document.getElementById('tts-rate');
+        const ttsRateLabel = document.getElementById('tts-rate-label');
+        const autoPlayToggle = document.getElementById('auto-play-toggle');
+        const ttsProgressBar = document.getElementById('tts-progress-bar');
+        const playIcon = document.getElementById('play-icon');
+        const pauseIcon = document.getElementById('pause-icon');
+        const playPauseText = document.getElementById('play-pause-text');
+
+        const selectedWordModalSpan = document.getElementById('selected-word-modal');
+        const googleTranslateResultDiv = document.getElementById('google-translate-result');
+        const pronounceWordButton = document.getElementById('pronounce-word-button');
+        const copyWordButton = document.getElementById('copy-word-button');
+        const closeLookupModalBtn = document.getElementById('close-lookup-modal-btn');
+        const lookupModalOverlay = document.getElementById('lookup-modal-overlay');
+        const modalContentInner = document.getElementById('modal-content-inner');
+
+        const selectionPopup = document.getElementById('text-selection-popup');
+        const copySelectionButton = document.getElementById('copy-selection-button');
+        const translateSelectionButton = document.getElementById('translate-selection-button');
+        const pronounceSelectionButton = document.getElementById('pronounce-selection-button');
+        const hanziiSelectionLink = document.getElementById('hanzii-selection-link');
+        const selectionTranslateResultDiv = document.getElementById('selection-translate-result');
+        const selectionTranslateSpinner = document.getElementById('selection-translate-spinner');
+        const closeSelectionPopupBtn = document.getElementById('close-selection-popup-btn');
+
+        const aiCustomInput = document.getElementById('ai-custom-input');
+        const aiGenerateSentenceButton = document.getElementById('ai-generate-sentence-button');
+        const aiGenerateRelatedWordsButton = document.getElementById('ai-generate-related-words-button');
+
+        function mainApp() {
+            loadPrompts();
+            updateApiKeyGuide();
+            initTts();
+            initSidebar();
+            initModalDrag();
+        }
+
+        function loadPrompts() {
+            Object.keys(DEFAULT_PROMPTS).forEach(type => {
+                const el = prompts[type];
+                const stored = localStorage.getItem(`nihongoPrompt_${type}`);
+                el.value = stored || DEFAULT_PROMPTS[type];
+            });
+        }
+
+        function initSidebar() {
+            document.getElementById('open-sidebar-btn').addEventListener('click', () => {
+                document.getElementById('settings-sidebar').style.transform = 'translateX(0)';
+                document.getElementById('sidebar-overlay').style.display = 'block';
+            });
+
+            document.getElementById('close-sidebar').addEventListener('click', () => {
+                document.getElementById('settings-sidebar').style.transform = 'translateX(-100%)';
+                document.getElementById('sidebar-overlay').style.display = 'none';
+            });
+
+            document.getElementById('sidebar-overlay').addEventListener('click', () => {
+                document.getElementById('settings-sidebar').style.transform = 'translateX(-100%)';
+                document.getElementById('sidebar-overlay').style.display = 'none';
+            });
+        }
+
+        function initModalDrag() {
+            const modal = document.getElementById('modal-content-inner');
+            let isDragging = false;
+            let startX, startY, initialLeft, initialTop;
+
+            modal.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                initialLeft = parseInt(getComputedStyle(modal).left, 10);
+                initialTop = parseInt(getComputedStyle(modal).top, 10);
+                document.addEventListener('mousemove', dragModal);
+                document.addEventListener('mouseup', stopDrag);
+            });
+
+            function dragModal(e) {
+                if (isDragging) {
+                    modal.style.left = `${initialLeft + e.clientX - startX}px`;
+                    modal.style.top = `${initialTop + e.clientY - startY}px`;
+                }
+            }
+
+            function stopDrag() {
+                isDragging = false;
+                document.removeEventListener('mousemove', dragModal);
+                document.removeEventListener('mouseup', stopDrag);
+            }
+        }
+
+        function initTts() {
+            speechSynthesis.onvoiceschanged = () => {
+                const voices = speechSynthesis.getVoices().filter(v => v.lang.includes('ja'));
+                ttsVoice.innerHTML = '';
+                voices.forEach(v => {
+                    const option = document.createElement('option');
+                    option.textContent = v.name + (v.default ? ' (mặc định)' : '');
+                    option.value = v.name;
+                    ttsVoice.appendChild(option);
+                });
+            };
+
+            ttsRate.addEventListener('input', () => ttsRateLabel.textContent = ttsRate.value + 'x');
+
+            let isPlaying = false;
+            ttsPlayPause.addEventListener('click', () => {
+                if (isPlaying) {
+                    speechSynthesis.pause();
+                    playIcon.style.display = 'inline-block';
+                    pauseIcon.style.display = 'none';
+                    playPauseText.textContent = 'Tiếp tục';
+                } else if (speechSynthesis.paused) {
+                    speechSynthesis.resume();
+                    playIcon.style.display = 'none';
+                    pauseIcon.style.display = 'inline-block';
+                    playPauseText.textContent = 'Tạm dừng';
+                } else {
+                    const utter = new SpeechSynthesisUtterance(currentRawText);
+                    utter.lang = 'ja-JP';
+                    utter.rate = parseFloat(ttsRate.value);
+                    const selectedVoice = ttsVoice.value;
+                    if (selectedVoice) {
+                        utter.voice = speechSynthesis.getVoices().find(v => v.name === selectedVoice);
+                    }
+                    utter.onend = () => {
+                        isPlaying = false;
+                        playIcon.style.display = 'inline-block';
+                        pauseIcon.style.display = 'none';
+                        playPauseText.textContent = 'Phát';
+                        ttsProgressBar.style.width = '0%';
+                    };
+                    utter.onboundary = (event) => {
+                        if (event.name === 'word') {
+                            ttsProgressBar.style.width = `${(event.charIndex / currentRawText.length) * 100}%`;
+                        }
+                    };
+                    speechSynthesis.speak(utter);
+                    playIcon.style.display = 'none';
+                    pauseIcon.style.display = 'inline-block';
+                    playPauseText.textContent = 'Tạm dừng';
+                }
+                isPlaying = !isPlaying;
+            });
+
+            ttsStop.addEventListener('click', () => {
+                speechSynthesis.cancel();
+                isPlaying = false;
+                playIcon.style.display = 'inline-block';
+                pauseIcon.style.display = 'none';
+                playPauseText.textContent = 'Phát';
+                ttsProgressBar.style.width = '0%';
+            });
+        }
+
+        const tasks = {
+            furigana: {
+                button: document.getElementById('furigana-button'),
+                stopBtn: document.getElementById('stop-furigana'),
+                progressDiv: document.getElementById('progress-furigana'),
+                container: document.getElementById('furigana-content'),
+                section: document.getElementById('furigana-text-section'),
+                queue: [],
+                currentIndex: 0,
+                active: false,
+                processor: processFuriganaChunk
+            },
+            segment: {
+                button: document.getElementById('segment-text-button'),
+                stopBtn: document.getElementById('stop-segment'),
+                progressDiv: document.getElementById('progress-segment'),
+                container: document.getElementById('segmented-content'),
+                section: document.getElementById('segmented-text-section'),
+                queue: [],
+                currentIndex: 0,
+                active: false,
+                processor: processSegmentationChunk
+            },
+            explain: {
+                button: document.getElementById('explain-text-button'),
+                stopBtn: document.getElementById('stop-explain'),
+                progressDiv: document.getElementById('progress-explain'),
+                container: document.getElementById('explanation-content'),
+                section: document.getElementById('explanation-section'),
+                queue: [],
+                currentIndex: 0,
+                active: false,
+                processor: processExplanationChunk
+            },
+            translate: {
+                button: document.getElementById('translate-full-text-button'),
+                stopBtn: document.getElementById('stop-translate'),
+                progressDiv: document.getElementById('progress-translate'),
+                container: document.getElementById('full-translation-content'),
+                section: document.getElementById('full-translation-section'),
+                queue: [],
+                currentIndex: 0,
+                active: false,
+                processor: processTranslationChunk
+            }
+        };
+
+        let requestQueue = [];
+
+        function scheduleNextChunk(taskKey) {
+            const task = tasks[taskKey];
+            if (!task.active || task.currentIndex >= task.queue.length) {
+                finishTask(taskKey);
+                return;
+            }
+
+            updateTaskStatus(taskKey, "Đang xử lý...");
+            task.processor(task.queue[task.currentIndex], task.container, taskKey, task.currentIndex)
+                .then(() => {
+                    task.currentIndex++;
+                    updateTaskStatus(taskKey, "Đang xử lý...");
+                    setTimeout(() => scheduleNextChunk(taskKey), parseFloat(delayInput.value) * 1000);
+                }).catch(e => {
+                    task.container.innerHTML += `<p class="text-red-600">Lỗi: ${e.message}</p>`;
+                    task.currentIndex++;
+                    setTimeout(() => scheduleNextChunk(taskKey), parseFloat(delayInput.value) * 1000);
+                });
+        }
+
+        function startTask(taskKey) {
+            if (!currentRawText) {
+                alert("Chưa có văn bản", "error"); return;
+            }
+            const task = tasks[taskKey];
+            task.section.classList.remove('hidden');
+            task.stopBtn.classList.remove('hidden');
+            task.progressDiv.style.display = 'block';
+            task.active = true;
+            
+            if(task.queue.length === 0 || task.currentIndex >= task.queue.length) {
+                task.container.innerHTML = '';
+                const size = parseInt(chunkSizeInput.value) || 100;
+                task.queue = chunkText(currentRawText, size);
+                task.currentIndex = 0;
+            }
+            scheduleNextChunk(taskKey);
+        }
+
+        function stopTask(taskKey) {
+            tasks[taskKey].active = false;
+            tasks[taskKey].stopBtn.classList.add('hidden');
+            updateTaskStatus(taskKey, "Đã dừng");
+        }
+
+        function finishTask(taskKey) {
+            tasks[taskKey].active = false;
+            tasks[taskKey].stopBtn.classList.add('hidden');
+            updateTaskStatus(taskKey, "Hoàn thành!");
+        }
+
+        function updateTaskStatus(taskKey, text) {
+            const t = tasks[taskKey];
+            const p = Math.round((t.currentIndex / Math.max(t.queue.length, 1)) * 100);
+            t.progressDiv.querySelector('.task-progress-bar-fill').style.width = `${p}%`;
+            t.progressDiv.querySelector('.task-status-text').innerHTML = `<span>${text}</span><span>${p}%</span>`;
+        }
+
+        // --- PROCESSORS for Japanese ---
+        async function processFuriganaChunk(chunk, container, _, index) {
+            const p = getPrompt('furigana', chunk);
+            const schema = { type: "ARRAY", items: { type: "OBJECT", properties: { "char": { "type": "STRING" }, "furigana": { "type": "STRING" }, "romaji": { "type": "STRING" } } } };
+            const res = await callAI(p, "application/json", schema);
+            let data = parseAiJson(res);
+            data.forEach(item => {
+                const char = (item.char || '').toString();
+                if (char === '\n') container.appendChild(document.createElement('br'));
+                else if (item.furigana) {
+                    const r = document.createElement('ruby'); r.className = 'word-clickable'; r.textContent = char;
+                    const rt = document.createElement('rt'); rt.textContent = item.furigana; r.appendChild(rt);
+                    r.onclick = (e) => { e.stopPropagation(); openLookupModal(char, e); };
+                    container.appendChild(r);
+                    const small = document.createElement('small'); small.textContent = ` (${item.romaji}) `;
+                    small.className = 'text-gray-500';
+                    container.appendChild(small);
+                } else {
+                    const s = document.createElement('span'); s.innerHTML = char.replace(/ /g, '&nbsp;'); container.appendChild(s);
+                }
+            });
+        }
+
+        async function processSegmentationChunk(chunk, container, _, index) {
+            const p = getPrompt('segment', chunk);
+            const schema = { type: "ARRAY", items: { type: "OBJECT", properties: { "word": { "type": "STRING" }, "romaji": { "type": "STRING" } }, required: ["word", "romaji"] } };
+            const res = await callAI(p, "application/json", schema);
+            let data = parseAiJson(res);
+            data.forEach(seg => {
+                const word = (seg.word || '').toString();
+                if (word === '\n') container.appendChild(document.createElement('br'));
+                else if (word.match(/[\u4e00-\u9fff\u3400-\u4dbf\u{20000}-\u{2a6df}\u{2a700}-\u{2b73f}\u{2b740}-\u{2b81f}\u{2b820}-\u{2ceaf}\u{f900}-\u{faff}\u{2f800}-\u{2fa1f}]/u)) {
+                    const r = document.createElement('ruby'); r.className = 'segmented-word'; r.textContent = word;
+                    if (seg.romaji) { const rt = document.createElement('rt'); rt.textContent = seg.romaji; r.appendChild(rt); }
+                    r.onclick = (e) => { e.stopPropagation(); openLookupModal(word, e); };
+                    container.appendChild(r);
+                } else {
+                    const s = document.createElement('span'); s.innerHTML = word.replace(/ /g, '&nbsp;'); container.appendChild(s);
+                }
+            });
+        }
+
+        async function processExplanationChunk(chunk, container, _, index) {
+            const p = getPrompt('explain', chunk);
+            const res = await callAI(p, "text/plain");
+            container.innerHTML += `<h4 class="font-bold text-red-700 mb-2 mt-4">Đoạn ${index+1}:</h4>` + res.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>') + '<hr class="my-4">';
+        }
+
+        async function processTranslationChunk(chunk, container, _, index) {
+            const p = getPrompt('translate', chunk);
+            const res = await callAI(p, "text/plain");
+            container.innerText += res + '\n\n';
+        }
+
+        // --- UTILS & API ---
+        function getPrompt(type, text) {
+            let t = prompts[type].value;
+            if(!t.trim()) t = DEFAULT_PROMPTS[type];
+            return t.replace('{{TEXT}}', text);
+        }
+
+        function chunkText(text, size) {
+            const chunks = []; if (!text) return chunks;
+            const parts = text.split(/([。！？\n\r]+)/).filter(Boolean);
+            let current = '';
+            for(let p of parts) {
+                if(current.length + p.length > size && current.length > 0) { chunks.push(current); current = p; }
+                else current += p;
+            }
+            if(current) chunks.push(current);
+            return chunks.filter(c => c.trim() !== '');
+        }
+
+        function parseAiJson(str) {
+            try {
+                const json = JSON.parse(str);
+                if(Array.isArray(json)) return json;
+                for(let k in json) if(Array.isArray(json[k])) return json[k];
+                return [json];
+            } catch(e) { throw new Error("JSON Parse Error"); }
+        }
+
+        function extractJson(text) {
+            const s = text.indexOf('{'), sq = text.indexOf('[');
+            let start = -1;
+            if(s !== -1 && sq !== -1) start = Math.min(s, sq); else if(s!==-1) start=s; else if(sq!==-1) start=sq;
+            if(start === -1) return text;
+            const e = text.lastIndexOf('}'), eq = text.lastIndexOf(']');
+            let end = Math.max(e, eq);
+            return text.substring(start, end + 1);
+        }
+
+        async function callAI(prompt, mimeType, schema) {
+            const key = apiKeyInput.value.trim();
+            const provider = aiProviderSelect.value;
+            if(!key) throw new Error("Thiếu API Key");
+            
+            let url, body;
+            if(provider === 'gemini') {
+                url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${key}`;
+                body = { contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { responseMimeType: mimeType } };
+                if(schema) body.generationConfig.responseSchema = schema;
+            } else {
+                url = 'https://api.deepseek.com/chat/completions';
+                const isJson = mimeType === 'application/json';
+                body = { 
+                    model: "deepseek-chat", 
+                    messages: [{ role: "system", content: isJson ? "JSON format." : "" }, { role: "user", content: prompt }], 
+                    stream: false 
+                };
+                if(isJson) body.response_format = { type: "json_object" };
+            }
+            
+            const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(provider==='deepseek' && {'Authorization': `Bearer ${key}`}) }, body: JSON.stringify(body) });
+            if(!res.ok) throw new Error(`HTTP ${res.status}`);
+            const json = await res.json();
+            
+            let txt = provider === 'gemini' ? json.candidates?.[0]?.content?.parts?.[0]?.text : json.choices?.[0]?.message?.content;
+            if(!txt) throw new Error("No response");
+            if(mimeType === 'application/json') txt = extractJson(txt);
+            console.log("AI:", txt);
+            return txt;
+        }
+
+        // --- EVENT LISTENERS ---
+        // Task Buttons
+        document.getElementById('furigana-button').addEventListener('click', () => startTask('furigana'));
+        document.getElementById('segment-text-button').addEventListener('click', () => startTask('segment'));
+        document.getElementById('explain-text-button').addEventListener('click', () => startTask('explain'));
+        document.getElementById('translate-full-text-button').addEventListener('click', () => startTask('translate'));
+        
+        // Stop Buttons
+        document.getElementById('stop-furigana').addEventListener('click', () => stopTask('furigana'));
+        document.getElementById('stop-segment').addEventListener('click', () => stopTask('segment'));
+        document.getElementById('stop-explain').addEventListener('click', () => stopTask('explain'));
+        document.getElementById('stop-translate').addEventListener('click', () => stopTask('translate'));
+
+        // Toggle Buttons
+        document.querySelectorAll('.toggle-button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetId = btn.getAttribute('data-target');
+                let content;
+                if(targetId) content = document.getElementById(targetId);
+                else content = btn.closest('.section-header').nextElementSibling;
+                
+                if(content) {
+                    content.classList.toggle('hidden');
+                    btn.textContent = content.classList.contains('hidden') ? 'Hiển thị' : 'Thu gọn';
+                }
+            });
+        });
+        
+        // Copy Buttons
+        document.querySelectorAll('.copy-button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetId = btn.getAttribute('data-target');
+                if(targetId) {
+                     const contentDiv = document.getElementById(targetId);
+                     copyHtmlToClipboard(contentDiv);
+                } else {
+                    const content = btn.closest('.section-header').nextElementSibling;
+                    copyHtmlToClipboard(content);
+                }
+            });
+        });
+
+        function copyHtmlToClipboard(element) {
+            const range = document.createRange();
+            range.selectNode(element);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            document.execCommand('copy');
+            selection.removeAllRanges();
+            alert('Đã sao chép!');
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => alert('Đã sao chép!'));
+        }
+
+        // Settings Buttons
+        Object.values(prompts).forEach((el, i) => {
+            const keys = ['promptFurigana', 'promptSegment', 'promptExplain', 'promptTranslate'];
+            el.addEventListener('change', () => localStorage.setItem(keys[i], el.value));
+        });
+        resetPromptsBtn.addEventListener('click', () => { 
+            if(confirm("Khôi phục prompt gốc?")) { 
+                localStorage.removeItem('promptFurigana'); localStorage.removeItem('promptSegment');
+                localStorage.removeItem('promptExplain'); localStorage.removeItem('promptTranslate');
+                loadPrompts();
+            } 
+        });
+        function updateApiKeyGuide() { apiKeyGuide.innerHTML = aiProviderSelect.value === 'gemini' ? 'Lấy API Key tại <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-red-600 hover:underline">Google AI Studio</a>.' : 'Lấy API Key tại <a href="https://platform.deepseek.com/api_keys" target="_blank" class="text-red-600 hover:underline">DeepSeek Platform</a>.'; }
+        aiProviderSelect.addEventListener('change', () => { updateApiKeyGuide(); localStorage.setItem('nihongoAiProvider', aiProviderSelect.value); });
+        saveApiKeyButton.addEventListener('click', () => { localStorage.setItem('nihongoApiKey', apiKeyInput.value); apiKeyStatus.textContent = "Đã lưu!"; setTimeout(() => apiKeyStatus.textContent = "", 2000); });
+        chunkSizeInput.addEventListener('change', () => localStorage.setItem('nihongoChunkSize', chunkSizeInput.value));
+        delayInput.addEventListener('change', () => localStorage.setItem('nihongoDelay', delayInput.value));
+
+        // File Upload
+        fileUploadInput.addEventListener('change', (e) => {
+            const file = e.target.files[0]; if(!file) return;
+            e.target.value = ''; fileNameSpan.textContent = file.name;
+            if(file.name.toLowerCase().endsWith('.docx')) {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    mammoth.convertToHtml({arrayBuffer: ev.target.result})
+                        .then(result => processNewContent(result.value, true))
+                        .catch(err => alert(err));
+                };
+                reader.readAsArrayBuffer(file);
+            } else {
+                const reader = new FileReader(); reader.onload = ev => processNewContent(ev.target.result); reader.readAsText(file);
+            }
+        });
+        
+        processTextButton.addEventListener('click', () => { if(textInputArea.value) processNewContent(textInputArea.value); });
+        
+        fetchUrlButton.addEventListener('click', async () => {
+            if(!urlInput.value) return;
+            fetchUrlButton.disabled = true; textDisplay.textContent = "Đang tải...";
+            try {
+                const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(urlInput.value)}`);
+                const html = await res.text();
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const content = (doc.querySelector('article') || doc.querySelector('main') || doc.body).innerText;
+                processNewContent(content);
+            } catch(e) { textDisplay.textContent = "Lỗi tải URL"; }
+            fetchUrlButton.disabled = false;
+        });
+
+        function processNewContent(content, isHtml=false) {
+            speechSynthesis.cancel();
+            Object.keys(tasks).forEach(k => { tasks[k].queue=[]; tasks[k].active=false; tasks[k].section.classList.add('hidden'); tasks[k].container.innerHTML=''; });
+            requestQueue.length = 0;
+            
+            if(isHtml) { textDisplay.innerHTML = content; currentRawText = textDisplay.innerText; }
+            else { textDisplay.textContent = content; currentRawText = content; }
+            
+            addClickableSpansTo(textDisplay, currentRawText);
+            
+            document.getElementById('text-stats-section').classList.remove('hidden');
+            document.getElementById('char-count').textContent = currentRawText.length;
+            document.getElementById('word-count').textContent = currentRawText.split(/\s+/).length;
+        }
+
+        function addClickableSpansTo(el, text) {
+            el.innerHTML = '';
+            text.split(/([\u4e00-\u9fff\u3400-\u4dbf\u{20000}-\u{2a6df}\u{2a700}-\u{2b73f}\u{2b740}-\u{2b81f}\u{2b820}-\u{2ceaf}\u{f900}-\u{faff}\u{2f800}-\u{2fa1f}]+)/u).forEach(part => {
+                if(part.match(/[\u4e00-\u9fff\u3400-\u4dbf\u{20000}-\u{2a6df}\u{2a700}-\u{2b73f}\u{2b740}-\u{2b81f}\u{2b820}-\u{2ceaf}\u{f900}-\u{faff}\u{2f800}-\u{2fa1f}]/u)) {
+                    const s = document.createElement('span'); s.textContent = part; s.className = 'word-clickable';
+                    s.onclick = (e) => { e.stopPropagation(); openLookupModal(part, e); };
+                    el.appendChild(s);
+                } else el.appendChild(document.createTextNode(part));
+            });
+        }
+
+        // AI Tools
+        const aiSpinner = document.getElementById('loading-spinner');
+        document.getElementById('ai-generate-sentence-button').addEventListener('click', async () => {
+            const w = aiCustomInput.value; if(!w) return;
+            aiSpinner.style.display = 'block'; document.getElementById('ai-sentence-results-section').classList.remove('hidden');
+            try {
+                const prompt = `Tạo 5 câu ví dụ tiếng Nhật cho từ "${w}". \nQuan trọng: Meaning phải là TIẾNG VIỆT. \nJSON: {"items": [{"sentence": "...", "romaji": "...", "meaning": "..."}]}`;
+                const res = await callAI(prompt, "application/json");
+                const data = parseAiJson(res);
+                document.getElementById('ai-sentence-content').innerHTML = data.map(i => `<div class="mb-2"><b>${i.sentence}</b><br><span class="text-gray-500 text-sm">${i.romaji}</span><br><span class="text-red-600 text-sm">${i.meaning}</span></div>`).join('');
+            } catch(e) { alert(e.message); } finally { aiSpinner.style.display = 'none'; }
+        });
+
+        document.getElementById('ai-generate-related-words-button').addEventListener('click', async () => {
+            const w = aiCustomInput.value; if(!w) return;
+            aiSpinner.style.display = 'block'; document.getElementById('ai-related-words-results-section').classList.remove('hidden');
+            try {
+                const prompt = `Tìm 10 từ liên quan đến "${w}" trong tiếng Nhật. \nQuan trọng: Meaning phải là TIẾNG VIỆT. \nJSON: {"items": [{"word": "...", "romaji": "...", "meaning": "..."}]}`;
+                const res = await callAI(prompt, "application/json");
+                const data = parseAiJson(res);
+                document.getElementById('ai-related-words-content').innerHTML = `<div class="grid grid-cols-2 gap-2">` + data.map(i => `<div class="p-2 border rounded cursor-pointer hover:bg-red-50" onclick="document.getElementById('ai-custom-input').value='${i.word}'"><b>${i.word}</b><br><span class="text-xs">${i.romaji}</span><br><span class="text-xs text-gray-600">${i.meaning}</span></div>`).join('') + `</div>`;
+            } catch(e) { alert(e.message); } finally { aiSpinner.style.display = 'none'; }
+        });
+
+        // // Lookup Modal
+        // async function openLookupModal(word, e) {
+        //     selectedWordModalSpan.textContent = word; googleTranslateResultDiv.innerHTML = ''; lookupModalOverlay.style.display = 'block';
+            
+        //     const enc = encodeURIComponent(word);
+        //     document.getElementById('jisho-link').href = `https://jisho.org/search/${enc}`;
+        //     document.getElementById('tangorin-link').href = `https://tangorin.com/search?q=${enc}`;
+        //     document.getElementById('weblio-link').href = `https://www.weblio.jp/content/${enc}`;
+        //     document.getElementById('takoboto-link').href = `https://takoboto.jp/?q=${enc}`;
+            
+        //     const modalWidth = modalContentInner.offsetWidth;
+        //     const modalHeight = modalContentInner.offsetHeight;
+        //     let left = e.clientX; let top = e.clientY;
+        //     if (left + modalWidth > window.innerWidth) left = window.innerWidth - modalWidth - 20;
+        //     if (top + modalHeight > window.innerHeight) top = window.innerHeight - modalHeight - 20;
+            
+        //     modalContentInner.style.top = `${top}px`; modalContentInner.style.left = `${left}px`;
+            
+        //     pronounceWordButton.onclick = () => speakWord(word);
+        //     copyWordButton.onclick = () => copyToClipboard(word);
+            
+        //     if(aiCustomInput) aiCustomInput.value = word;
+        //     if(autoPlayToggle && autoPlayToggle.checked) speakWord(word);
+
+        //     try {
+        //         const res = await getTranslation(word);
+        //         googleTranslateResultDiv.innerHTML = `<b>${res.romaji}</b><br>${res.meaning}`;
+        //     } catch(e) { googleTranslateResultDiv.innerHTML = 'Lỗi dịch'; }
+        // }
+        
+
+        async function openLookupModal(word, e) {
+    selectedWordModalSpan.textContent = word; googleTranslateResultDiv.innerHTML = ''; lookupModalOverlay.style.display = 'block';
+    
+    const enc = encodeURIComponent(word);
+    document.getElementById('jisho-link').href = `https://jisho.org/search/${enc}`;
+    document.getElementById('tangorin-link').href = `https://tangorin.com/words?search=${enc}`;
+    document.getElementById('weblio-link').href = `https://www.weblio.jp/content/${enc}`;
+    document.getElementById('takoboto-link').href = `https://takoboto.jp/?q=${enc}`;
+    document.getElementById('vtudien-link').href = `https://vtudien.com/nhat-viet/dictionary/nghia-cua-tu-${enc}`;
+    document.getElementById('youglish-link').href = `https://youglish.com/pronounce/${enc}/japanese`;
+    
+    const modalWidth = modalContentInner.offsetWidth;
+    const modalHeight = modalContentInner.offsetHeight;
+    let left = e.clientX; let top = e.clientY;
+    if (left + modalWidth > window.innerWidth) left = window.innerWidth - modalWidth - 20;
+    if (top + modalHeight > window.innerHeight) top = window.innerHeight - modalHeight - 20;
+    
+    modalContentInner.style.top = `${top}px`; modalContentInner.style.left = `${left}px`;
+    
+    pronounceWordButton.onclick = () => speakWord(word);
+    copyWordButton.onclick = () => copyToClipboard(word);
+    
+    if(aiCustomInput) aiCustomInput.value = word;
+    if(autoPlayToggle && autoPlayToggle.checked) speakWord(word);
+
+    try {
+        const res = await getTranslation(word);
+        googleTranslateResultDiv.innerHTML = `<b>${res.romaji}</b><br>${res.meaning}`;
+    } catch(e) { googleTranslateResultDiv.innerHTML = 'Lỗi dịch'; }
+}
+        async function getTranslation(word) {
+            const prompt = `Dịch "${word}" từ tiếng Nhật sang tiếng Việt. JSON: {"romaji": "...", "meaning": "..."}`;
+            const res = await callAI(prompt, "application/json");
+            return JSON.parse(res);
+        }
+        
+        closeLookupModalBtn.addEventListener('click', () => lookupModalOverlay.style.display = 'none');
+        closeSelectionPopupBtn.addEventListener('click', () => selectionPopup.classList.add('hidden'));
+
+        // Selection Popup
+        document.addEventListener('mouseup', (e) => {
+            setTimeout(() => {
+                const s = window.getSelection(); if (!s || s.isCollapsed) return;
+                const t = s.toString().trim(); if (!t || selectionPopup.contains(e.target) || modalContentInner.contains(e.target) || e.target.closest('.word-clickable')) return;
+                lookupModalOverlay.style.display = 'none'; selectionPopup.classList.remove('hidden');
+                
+                const r = s.getRangeAt(0).getBoundingClientRect();
+                let top = r.bottom + window.scrollY + 5; let left = r.left + window.scrollX;
+                selectionPopup.style.top = `${top}px`; selectionPopup.style.left = `${left}px`;
+                
+                if(aiCustomInput) aiCustomInput.value = t;
+                if(autoPlayToggle && autoPlayToggle.checked) speakWord(t);
+
+                copySelectionButton.onclick = () => { copyToClipboard(t); selectionPopup.classList.add('hidden'); };
+                translateSelectionButton.onclick = async () => { 
+                    selectionTranslateResultDiv.classList.add('hidden'); selectionTranslateSpinner.style.display = 'block'; 
+                    const r = await getTranslation(t); 
+                    selectionTranslateSpinner.style.display = 'none'; 
+                    if(r.meaning !== 'Không thể dịch.') { selectionTranslateResultDiv.innerHTML = `<strong>Dịch:</strong> ${r.romaji} - ${r.meaning}`; selectionTranslateResultDiv.classList.remove('hidden'); } 
+                };
+                pronounceSelectionButton.onclick = () => speakWord(t); hanziiSelectionLink.href = `https://jisho.org/search/${encodeURIComponent(t)}`;
+            }, 0);
+        });
+
+        function speakWord(word) {
+            speechSynthesis.cancel();
+            const utter = new SpeechSynthesisUtterance(word);
+            utter.lang = 'ja-JP';
+            speechSynthesis.speak(utter);
+        }
+
+        // Media
+        mediaUploadInput.addEventListener('change', (e) => {
+            const file = e.target.files[0]; if(!file) return;
+            const url = URL.createObjectURL(file);
+            if(activeMediaPlayer) { activeMediaPlayer.pause(); activeMediaPlayer.src = ""; }
+            
+            document.getElementById('media-container').classList.remove('hidden');
+            document.getElementById('media-filename').textContent = file.name;
+            const v = document.getElementById('main-media-player');
+            const a = document.getElementById('main-audio-player');
+            
+            if(file.type.startsWith('video')) { 
+                v.src = url; v.style.display = 'block'; a.style.display = 'none'; activeMediaPlayer = v; 
+            } else { 
+                a.src = url; a.style.display = 'block'; v.style.display = 'none'; activeMediaPlayer = a; 
+            }
+            
+            document.getElementById('media-controls').classList.remove('opacity-50', 'pointer-events-none');
+            
+            activeMediaPlayer.onplay = () => { speechSynthesis.cancel(); };
+        });
+        mediaRewindBtn.addEventListener('click', () => { if(activeMediaPlayer) activeMediaPlayer.currentTime -= 10; });
+        mediaForwardBtn.addEventListener('click', () => { if(activeMediaPlayer) activeMediaPlayer.currentTime += 10; });
+        mediaRateSelect.addEventListener('change', (e) => { if(activeMediaPlayer) activeMediaPlayer.playbackRate = parseFloat(e.target.value); });
+
+        // Load Config
+        if(localStorage.getItem('nihongoApiKey')) apiKeyInput.value = localStorage.getItem('nihongoApiKey');
+        if(localStorage.getItem('nihongoAiProvider')) aiProviderSelect.value = localStorage.getItem('nihongoAiProvider');
+        if(localStorage.getItem('nihongoChunkSize')) chunkSizeInput.value = localStorage.getItem('nihongoChunkSize');
+        if(localStorage.getItem('nihongoDelay')) delayInput.value = localStorage.getItem('nihongoDelay');
+        updateApiKeyGuide();
+
+        window.addEventListener('load', mainApp);
+    </script>
+</body>
+</html>
